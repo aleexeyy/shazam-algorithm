@@ -1,14 +1,35 @@
 use mysql::*;
 use mysql::prelude::*;
-
+use std::env;
 pub fn set_up_connection() -> Result<PooledConn, Box<dyn std::error::Error>> {
-    let url = "mysql://root:Aradchenko2021@localhost:3306";
-    let pool = Pool::new(url)?;
+    let db_user = env::var("DB_USER")?;
+    let db_password = env::var("DB_PASSWORD")?;
+    let db_host = env::var("DB_HOST")?;
+    let db_port = env::var("DB_PORT")?.parse::<u16>()?;
+    let db_name = env::var("DB_NAME")?;
+
+    // First, connect WITHOUT db_name to create the DB if needed
+    let base_opts = OptsBuilder::new()
+        .user(Some(&db_user))
+        .pass(Some(&db_password))
+        .ip_or_hostname(Some(&db_host))
+        .tcp_port(db_port);
+
+    let base_pool = Pool::new(base_opts)?;
+    let mut base_conn = base_pool.get_conn()?;
+
+    base_conn.query_drop(format!("CREATE DATABASE IF NOT EXISTS `{}`", db_name))?;
+
+    // Now connect WITH db_name
+    let full_opts = OptsBuilder::new()
+        .user(Some(db_user))
+        .pass(Some(db_password))
+        .ip_or_hostname(Some(db_host))
+        .tcp_port(db_port)
+        .db_name(Some(db_name.clone()));
+
+    let pool = Pool::new(full_opts)?;
     let mut conn: PooledConn = pool.get_conn()?;
-
-    conn.query_drop("CREATE DATABASE IF NOT EXISTS  shazam_db")?;
-    conn.query_drop("USE shazam_db")?;
-
 
     conn.query_drop(
         r"CREATE TABLE IF NOT EXISTS fingerprints (
@@ -20,15 +41,12 @@ pub fn set_up_connection() -> Result<PooledConn, Box<dyn std::error::Error>> {
 
     conn.query_drop(
         r"CREATE TABLE IF NOT EXISTS songs (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        artist VARCHAR(255) NOT NULL,
-        UNIQUE KEY unique_song_artist (name, artist)
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            artist VARCHAR(255) NOT NULL,
+            UNIQUE KEY unique_song_artist (name, artist)
         )"
     )?;
-
-    
-
 
     Ok(conn)
 }

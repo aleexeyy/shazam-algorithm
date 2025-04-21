@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
   const upload = multer({ storage });
 
 
-const port = process.env.PORT || 8000;
+const port = process.env.SERVER_PORT || 8000;
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 
@@ -56,10 +56,10 @@ app.use(express.json());
 
 
 const database = mysql.createConnection({
-    host: 'localhost',
-    user: 'root', 
-    password: process.env.DATABASE_PASSWORD, 
-    database: 'shazam_db'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER, 
+    password: process.env.DB_PASSWORD, 
+    database: process.env.DB_NAME
 });
 
 database.connect((err) => {
