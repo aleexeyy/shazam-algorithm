@@ -71,10 +71,10 @@ const ModeSwitch = () => {
             method: "POST",
             body: formData,
           });
-          const data = await response.json();
-          setSongName(data.name);
-        setArtistName(data.artist);
-          console.log("Recognition result:", data);
+            const data = await response.json();
+            setSongName(data.name);
+            setArtistName(data.artist);
+            console.log("Recognition result:", data);
         } catch (error) {
           console.error("Error uploading file:", error);
         }
@@ -115,8 +115,8 @@ const ModeSwitch = () => {
           </>
         )}
       </div>
-      {songName && artistName && (
-        <SongInfo songName={songName} artistName={artistName} />
+      {songName && (
+        <SongInfo songName={songName} artistName={artistName || 'Unknown'} />
       )}
     </div>
   );
