@@ -1,0 +1,49 @@
+#root {
+    height: 100%;
+    width: 100%;
+}
+body {
+    width: 100%;
+    height: 100%;
+    background-color: #2a2929;
+    position: relative;
+}
+
+#spotify-input {
+    height: 30px;
+    width: 500px;
+    font-size: 20px;
+}
+.centering-div {
+    display: flex;
+    justify-content: center;   /* Horizontally center */
+    align-items: center;    
+    flex-direction: column;   /* Vertically center */
+    height: 100%;
+}
+
+#submit-song    {
+    flex-direction: row;
+}
+
+
+#submit-button {
+    margin-left: 10px;
+    padding: 6px 12px;      /* Increases size (top/bottom, left/right) */
+    font-size: 18px;         /* Larger text */
+    background-color: #4CAF50; /* Optional: make it more stylish */
+    color: white;
+    border: none;
+    border-radius: 6px;      /* Optional: rounded corners */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+
+  #song-counter {
+    position: absolute;
+    top: 30px;
+    right: 80px;
+    color: white;
+    font-size: 25px;
+  }
