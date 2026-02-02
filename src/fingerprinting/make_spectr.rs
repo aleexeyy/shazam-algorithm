@@ -98,3 +98,50 @@ fn hann_window(len: usize) -> Vec<f64> {
         .map(|n| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * n as f64 / denom).cos()))
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hann_window_handles_empty_and_singleton() {
+        assert!(hann_window(0).is_empty());
+        assert_eq!(hann_window(1), vec![1.0]);
+    }
+
+    #[test]
+    fn hann_window_is_bounded_and_tapers_to_zero() {
+        let w = hann_window(32);
+        assert_eq!(w.len(), 32);
+        assert!(w[0].abs() < 1e-12);
+        assert!(w[w.len() - 1].abs() < 1e-12);
+        assert!(w.iter().all(|&x| (0.0..=1.0).contains(&x)));
+    }
+
+    #[test]
+    fn analyze_peaks_silence_produces_empty_peaks() {
+        let audio = vec![0.0_f64; FRAME_LENGTH];
+        let mut analyzer = FrameAnalyzer::new();
+        let peaks = analyzer.analyze_peaks(&audio, 0);
+        assert!(peaks.is_empty());
+    }
+
+    #[test]
+    fn analyze_peaks_tone_puts_energy_in_high_band() {
+        let sample_rate = 8000.0_f64;
+        let freq = 440.0_f64;
+        let audio: Vec<f64> = (0..FRAME_LENGTH)
+            .map(|i| (2.0 * std::f64::consts::PI * freq * i as f64 / sample_rate).sin())
+            .collect();
+
+        let mut analyzer = FrameAnalyzer::new();
+        let peaks = analyzer.analyze_peaks(&audio, 0);
+
+        // 440Hz at 8kHz/1024 ≈ bin 56, which lies in band (40..65).
+        let high_band_bin = peaks.bins[5];
+        assert!((45..=65).contains(&high_band_bin));
+
+        // The high band should survive thresholding for a clean tone.
+        assert_ne!(peaks.keep_mask & (1u8 << 5), 0);
+    }
+}

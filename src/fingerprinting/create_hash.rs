@@ -32,7 +32,7 @@ pub fn create_pairs(
     Ok(result.song_id)
 }
 
-fn build_sample(peaks: &[FramePeaks]) -> FingerprintSample {
+pub fn build_sample(peaks: &[FramePeaks]) -> FingerprintSample {
     let mut sample = FingerprintSample::default();
     sample.keys.reserve(peaks.len().saturating_mul(16));
     sample.anchor_times.reserve(peaks.len().saturating_mul(16));
@@ -97,4 +97,55 @@ fn normalize_bin(bin: u16) -> u16 {
 fn normalize_delta(delta_time_s: f32) -> u16 {
     let clamped = delta_time_s.clamp(0.0, 5.0);
     ((clamped / 5.0) * 65535.0).round().clamp(0.0, 65535.0) as u16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_delta_clamps_to_range() {
+        assert_eq!(normalize_delta(-1.0), 0);
+        assert_eq!(normalize_delta(0.0), 0);
+        assert_eq!(normalize_delta(5.0), 65535);
+        assert_eq!(normalize_delta(6.0), 65535);
+    }
+
+    #[test]
+    fn normalize_bin_maps_frame_bounds() {
+        assert_eq!(normalize_bin(0), 0);
+        assert_eq!(normalize_bin(FRAME_LENGTH as u16), 65535);
+    }
+
+    #[test]
+    fn fingerprint_key_bit_packs_components() {
+        let key = fingerprint_key(0, FRAME_LENGTH as u16, 5.0);
+        let anchor = (key & 0xFFFF) as u16;
+        let target = ((key >> 16) & 0xFFFF) as u16;
+        let delta = ((key >> 32) & 0xFFFF) as u16;
+
+        assert_eq!(anchor, 0);
+        assert_eq!(target, 65535);
+        assert_eq!(delta, 65535);
+        assert_eq!(key >> 48, 0);
+    }
+
+    #[test]
+    fn build_sample_has_matching_key_and_time_lengths() {
+        let peaks = vec![
+            FramePeaks {
+                bins: [10, 0, 0, 0, 0, 0],
+                keep_mask: 0b0000_0001,
+            },
+            FramePeaks {
+                bins: [20, 0, 0, 0, 0, 0],
+                keep_mask: 0b0000_0001,
+            },
+        ];
+
+        let sample = build_sample(&peaks);
+        assert_eq!(sample.keys.len(), sample.anchor_times.len());
+        assert!(!sample.keys.is_empty());
+        assert!(sample.anchor_times.iter().all(|&t| t >= 0.0));
+    }
 }

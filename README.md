@@ -5,9 +5,10 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
 ## 🧠 Tech Stack
 
 - **Recognition Algorithm**: Written in **Rust** to explore the language's performance and ecosystem.
-- **Backend**: Built with **Express.js** for handling audio uploads, processing, and database interaction.
+- **Backend**: Built with **Actix-web (Rust)** for handling uploads, fingerprinting, and database interaction.
 - **Frontend**: A simple interface built with **React** for uploading tracks and recognizing songs.
-- **Database**: Local **MySQL** database stores audio fingerprints of uploaded songs.
+- **Database**: **PostgreSQL** stores fingerprints + song metadata.
+- **Object Storage**: **MinIO** (S3-compatible) for future audio/object storage needs.
 - **Audio Downloading**: Uses `yt-dlp` to fetch audio from YouTube based on Spotify track links.
 
 ## 🚀 Features
@@ -32,9 +33,10 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
 ## Technology Stack
 
 - **Recognition Algorithm**: Rust
-- **Backend**: Express.js (Node.js)
+- **Backend**: Actix-web (Rust)
 - **Frontend**: React
-- **Database**: MySQL
+- **Database**: PostgreSQL
+- **Object Storage**: MinIO
 
 ## Setup Instructions
 
@@ -44,43 +46,16 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
    - Install Rust using rustup: https://rustup.rs/
    - Follow the instructions for your operating system
 
-2. **Node.js and npm**
-   - Download and install from: https://nodejs.org/ (LTS version recommended)
-   - Verify installation:
-     ```
-     node --version
-     npm --version
-     ```
+2. **Docker + Docker Compose** (recommended)
+   - Install Docker Desktop or Docker Engine + Compose plugin.
 
-3. **MySQL**
-   - **Windows**: Download MySQL Installer from the [official website](https://dev.mysql.com/downloads/installer/) and follow installation prompts
-   - **macOS**: Use Homebrew: `brew install mysql` then `brew services start mysql`
-   - **Linux (Ubuntu/Debian)**: `sudo apt update && sudo apt install mysql-server`
-   - After installation, secure your MySQL installation:
-     ```
-     sudo mysql_secure_installation
-     ```
-   - Create a root password when prompted
+### Quickstart (Docker)
 
-### Database Setup
+1. Start the full stack (app + PostgreSQL + MinIO):
+   - `docker compose up --build`
 
-1. Log in to MySQL:
-   ```
-   mysql -u root -p
-   ```
-
-2. Create a new database:
-   ```sql
-   CREATE DATABASE shazam_clone;
-   ```
-
-3. Create a user and grant privileges:
-   ```sql
-   CREATE USER 'shazam_user'@'localhost' IDENTIFIED BY 'your_password';
-   GRANT ALL PRIVILEGES ON shazam_clone.* TO 'shazam_user'@'localhost';
-   FLUSH PRIVILEGES;
-   EXIT;
-   ```
+2. Verify the server:
+   - `curl http://localhost:8000/healthz`
 
 ### Spotify API Setup
 
@@ -105,19 +80,16 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
    (This will install yt-dlp, ffmpeg, and other dependencies)
 
 3. Set up environment variables:
-   - Create a `.env` file in the project root with:
+   - Copy `.env.example` to `.env` and adjust as needed:
    ```
-   DB_USER=shazam_user
-   DB_PASSWORD=your_password
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_NAME=shazam_clone
-   
-   PORT=3000
-   CLIENT_PORT=3001
-   
-   SPOTIFY_CLIENT_ID=your_spotify_client_id
-   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+   SERVER_PORT=8000
+   CLIENT_ID=your_spotify_client_id
+   CLIENT_SECRET=your_spotify_client_secret
+   DATABASE_URL=postgres://shazam:shazam@localhost:5432/shazam
+   S3_ENDPOINT=http://localhost:9000
+   S3_BUCKET=shazam
+   S3_ACCESS_KEY=minio
+   S3_SECRET_KEY=minio123456
    ```
 
 4. Build the Rust component:
@@ -127,14 +99,7 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
    cd ..
    ```
 
-5. Install backend dependencies:
-   ```
-   cd backend
-   npm install
-   cd ..
-   ```
-
-6. Install frontend dependencies:
+5. Install frontend dependencies:
    ```
    cd frontend
    npm install
@@ -157,8 +122,7 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
 
 3. Start the backend server:
    ```
-   cd backend
-   npm start
+   cargo run --bin shazam-server
    ```
 
 4. In a new terminal, start the frontend development server:
@@ -168,6 +132,10 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
    ```
 
 5. Open your browser and navigate to `http://localhost:3001`
+
+## Performance (Criterion + Flamegraphs)
+
+See `docs/perf.md` for running benchmarks and generating flamegraphs.
 
 ## Using the Application
 

@@ -11,25 +11,62 @@ crate-type = ["cdylib", "rlib"]
 name = "shazam-server"
 path = "src/bin/server.rs"
 
+[profile.dev]
+opt-level = 0
+debug = 2
+incremental = true
+overflow-checks = true
+panic = "unwind"
+
+[profile.release]
+opt-level = 3
+debug = 1
+lto = "thin"
+codegen-units = 1
+incremental = false
+overflow-checks = false
+panic = "abort"
+
+[profile.bench]
+opt-level = 3
+debug = 1
+lto = "thin"
+codegen-units = 1
+incremental = false
+overflow-checks = false
+panic = "abort"
+
+
 [dependencies]
 actix-cors = "0.7"
 actix-multipart = "0.7"
 actix-web = "4"
-bytes = "1"
 base64 = "0.22"
 dotenvy = "0.15"
 futures-util = "0.3"
-hound = "3.4.0"
+hound = "3.5"
 rubato = "0.14"
-rustfft = "5.1.0"
+rustfft = "6"
 mime = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1.0"
-mysql = "24.0.0"
 log = "0.4"
-env_logger = "0.9"
-rayon = "1.10"
+env_logger = "0.11"
+rayon = "1.11"
 thiserror = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util", "process"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util", "process", "time"] }
 uuid = { version = "1", features = ["v4"] }
+postgres = "0.19"
+r2d2 = "0.8"
+r2d2_postgres = "0.18"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "fingerprinting"
+harness = false
+
+[[bench]]
+name = "fingerprint_workload"
+harness = false

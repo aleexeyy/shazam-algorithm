@@ -4,6 +4,7 @@ use crate::backend::models::{
 };
 use crate::backend::repositories::Repository;
 use crate::backend::services::{AudioTools, FingerprintService, SpotifyService};
+use crate::backend::storage::minio::MinioStorage;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, web};
 use futures_util::StreamExt;
@@ -16,10 +17,12 @@ pub struct AppState {
     pub spotify: SpotifyService,
     pub audio: AudioTools,
     pub fingerprint: FingerprintService,
+    pub minio: MinioStorage,
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.route("/ping", web::get().to(ping))
+        .route("/healthz", web::get().to(healthz))
         .route("/songs/count", web::get().to(songs_count))
         .route("/upload-song", web::post().to(upload_song))
         .route("/recognize-song", web::post().to(recognize_song));
@@ -27,6 +30,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 async fn ping() -> Result<HttpResponse, AppError> {
     Ok(HttpResponse::Ok().json(PongResponse { message: "Pong" }))
+}
+
+async fn healthz(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+    let repo = Arc::clone(&state.repo);
+    let _ = tokio::task::spawn_blocking(move || repo.songs_count()).await??;
+    state.minio.ensure_ready().await?;
+    Ok(HttpResponse::Ok().json(PongResponse { message: "OK" }))
 }
 
 async fn songs_count(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {

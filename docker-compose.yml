@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shazam}
+      POSTGRES_USER: ${POSTGRES_USER:-shazam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shazam}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123456}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  app:
+    build:
+      context: .
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8000}
+      DATABASE_URL: postgres://${POSTGRES_USER:-shazam}:${POSTGRES_PASSWORD:-shazam}@postgres:5432/${POSTGRES_DB:-shazam}
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-shazam}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio123456}
+      # Optional (only needed for /upload-song)
+      CLIENT_ID: ${CLIENT_ID:-dummy}
+      CLIENT_SECRET: ${CLIENT_SECRET:-dummy}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+volumes:
+  pgdata:
+  minio-data:

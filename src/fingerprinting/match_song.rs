@@ -106,3 +106,47 @@ pub fn match_song(
 
     Ok(best)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mismatch_lengths_errors() {
+        let matches: Vec<(u64, u64, f32)> = Vec::new();
+        let err = match_song(&matches, &[1, 2], &[0.0], MatchConfig::default()).unwrap_err();
+        assert!(matches!(err, MatchError::SampleMismatch));
+    }
+
+    #[test]
+    fn empty_inputs_return_default() {
+        let matches: Vec<(u64, u64, f32)> = Vec::new();
+        let result = match_song(&matches, &[], &[], MatchConfig::default()).unwrap();
+        assert_eq!(result, MatchResult::default());
+    }
+
+    #[test]
+    fn chooses_song_with_strongest_consistent_offset() {
+        let sample_keys = vec![111u64, 222u64, 333u64];
+        let sample_times = vec![0.0f32, 1.0f32, 2.0f32];
+
+        let matches = vec![
+            // Song 1 aligns with +1s offset on all keys.
+            (111, 1, 1.0),
+            (222, 1, 2.0),
+            (333, 1, 3.0),
+            // Song 2 only aligns on one key.
+            (111, 2, 10.0),
+        ];
+
+        let result = match_song(
+            &matches,
+            &sample_keys,
+            &sample_times,
+            MatchConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.song_id, 1);
+        assert!(result.confidence > 0.0);
+    }
+}

@@ -21,7 +21,10 @@ pub enum AppError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Db(#[from] mysql::Error),
+    Db(#[from] postgres::Error),
+
+    #[error(transparent)]
+    Pool(#[from] r2d2::Error),
 
     #[error(transparent)]
     HttpClient(#[from] reqwest::Error),
@@ -65,6 +68,7 @@ impl ResponseError for AppError {
             Self::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Db(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Pool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::HttpClient(_) => StatusCode::BAD_GATEWAY,
             Self::Join(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -75,5 +79,30 @@ impl ResponseError for AppError {
         HttpResponse::build(self.status_code()).json(ErrorBody {
             error: self.to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_code_mapping_is_stable() {
+        assert_eq!(
+            AppError::BadRequest("x".to_string()).status_code(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            AppError::UnsupportedMediaType("x".to_string()).status_code(),
+            StatusCode::UNSUPPORTED_MEDIA_TYPE
+        );
+        assert_eq!(
+            AppError::NotFound("x".to_string()).status_code(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            AppError::internal("x").status_code(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 }

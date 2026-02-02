@@ -1,8 +1,8 @@
-mod mysql_repository;
+mod postgres_repository;
 
 use crate::backend::error::AppError;
 
-pub use mysql_repository::MySqlRepository;
+pub use postgres_repository::PostgresRepository;
 
 pub trait Repository: Send + Sync + 'static {
     fn songs_count(&self) -> Result<u64, AppError>;

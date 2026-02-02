@@ -1,0 +1,9 @@
+.git
+target
+audio
+log
+**/node_modules
+.vscode
+.env
+.DS_Store
+

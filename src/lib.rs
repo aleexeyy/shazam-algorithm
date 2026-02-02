@@ -1,4 +1,4 @@
-mod fingerprinting;
+pub mod fingerprinting;
 mod paths;
 
 pub mod backend;
@@ -24,7 +24,7 @@ pub extern "C" fn run_shazam(
         std::str::from_utf8_unchecked(std::slice::from_raw_parts(artist_name, artist_name_len))
     };
 
-    let repo = backend::repositories::MySqlRepository::new_from_env();
+    let repo = backend::repositories::PostgresRepository::new_from_env();
     let (name, artist) = match repo
         .and_then(|repo| run_shazam_with_repo(&repo, song_name, artist_name, to_recognize))
     {
