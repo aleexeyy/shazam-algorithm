@@ -1,1 +1,8 @@
 /target
+.DS_Store
+.env
+.vscode/
+**/node_modules/
+/audio/*.wav
+/log/*.txt
+/dump.rdb
