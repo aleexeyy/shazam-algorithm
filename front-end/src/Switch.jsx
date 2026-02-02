@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
-import './Switch.css'; // optional for styling
+import { useState } from 'react';
+import './Switch.css';
 import Center from "./Center"
 import SongInfo from './SongInfo';
+import { apiUrl } from "./api";
 
-const ModeSwitch = () => {
+const ModeSwitch = ({ onSongsChanged }) => {
   const [spotifyUrl, setSpotifyUrl] = useState("");
   const [toRecognize, setToRecognize] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null); 
-  const [songName, setSongName] = useState(null); // Store song name
+  const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
   const [fileName, setFileName] = useState('');
+  const [requestError, setRequestError] = useState(null);
+  const [requestSuccess, setRequestSuccess] = useState(null);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
         setSelectedFile(file);
         setFileName(file.name);
+        setRequestError(null);
+        setRequestSuccess(null);
         // setSongName("");
         // setArtistName("");
     }
@@ -33,30 +38,46 @@ const ModeSwitch = () => {
         console.log(songId);
 
         try {
-            const response = await fetch("http://localhost:8000/upload-song", {
+            setRequestError(null);
+            setRequestSuccess(null);
+            const response = await fetch(apiUrl("/upload-song"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                   },
                 body: JSON.stringify({ "songId" : songId, "toRecognize": toRecognize }),
             })
-            const data = await response.json();
+            let data = null;
+            try {
+              data = await response.json();
+            } catch {
+              // ignore non-JSON errors
+            }
 
+            if (!response.ok) {
+              throw new Error(data?.error || `Upload failed (HTTP ${response.status})`);
+            }
 
             console.log("Server response:", data);
-            setToRecognize(false);
-          window.location.reload();
+            setRequestSuccess("Upload complete.");
+            setSpotifyUrl("");
+            setSongName(null);
+            setArtistName(null);
+            if (typeof onSongsChanged === "function") {
+              onSongsChanged();
+            }
         } catch(error) {
             console.error("Error sending songId:", error);
+            setRequestError(error?.message || "Upload failed.");
         }
     } else {
-        alert("Invalid Spotify link!");
+        setRequestError("Invalid Spotify link!");
     }
         
     } else {
         // File recognition
         if (!selectedFile) {
-          alert("Please upload a file first!");
+          setRequestError("Please upload a file first!");
           return;
         }
   
@@ -67,16 +88,22 @@ const ModeSwitch = () => {
         formData.append("toRecognize", "true");
         
         try {
-          const response = await fetch("http://localhost:8000/recognize-song", {
+          setRequestError(null);
+          setRequestSuccess(null);
+          const response = await fetch(apiUrl("/recognize-song"), {
             method: "POST",
             body: formData,
           });
-            const data = await response.json();
-            setSongName(data.name);
-            setArtistName(data.artist);
-            console.log("Recognition result:", data);
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data?.error || `Recognition failed (HTTP ${response.status})`);
+          }
+          setSongName(data.name);
+          setArtistName(data.artist);
+          console.log("Recognition result:", data);
         } catch (error) {
           console.error("Error uploading file:", error);
+          setRequestError(error?.message || "Recognition failed.");
         }
       }
     
@@ -86,6 +113,8 @@ const ModeSwitch = () => {
     setToRecognize(!toRecognize);
     setSongName("");
     setArtistName("");
+    setRequestError(null);
+    setRequestSuccess(null);
   };
 
   return (
@@ -99,6 +128,25 @@ const ModeSwitch = () => {
             {toRecognize ? '🎧 Recognize Song' : '📥 Upload Song'}
         </span>
       </Center>
+      {(requestError || requestSuccess) && (
+        <div
+          style={{
+            marginTop: '12px',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: requestError ? '#ff6b6b' : '#51cf66',
+            color: requestError ? '#ff6b6b' : '#51cf66',
+            background: 'rgba(0,0,0,0.2)',
+            maxWidth: '520px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            textAlign: 'center',
+          }}
+        >
+          {requestError || requestSuccess}
+        </div>
+      )}
       <div className='centering-div' style={{ marginTop: '20px' }}>
         {toRecognize ? (
             <>

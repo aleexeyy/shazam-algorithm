@@ -47,8 +47,12 @@ pub fn build_sample(peaks: &[FramePeaks]) -> FingerprintSample {
             let mut target_count = 0usize;
 
             let end = (anchor_frame_idx + 1 + TARGET_ZONE_FRAMES).min(peaks.len());
-            for target_frame_idx in (anchor_frame_idx + 1)..end {
-                let target_frame = &peaks[target_frame_idx];
+            for (target_frame_idx, target_frame) in peaks
+                .iter()
+                .enumerate()
+                .take(end)
+                .skip(anchor_frame_idx + 1)
+            {
                 if target_frame.is_empty() {
                     continue;
                 }

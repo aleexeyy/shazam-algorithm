@@ -9,7 +9,7 @@ pub fn find_spectral_peaks(audio: &[f64]) -> Result<Vec<FramePeaks>, Fingerprint
         return Err(FingerprintError::EmptyAudio);
     }
 
-    let padded_len = ((audio.len() + HOP_LENGTH - 1) / HOP_LENGTH) * HOP_LENGTH;
+    let padded_len = audio.len().div_ceil(HOP_LENGTH) * HOP_LENGTH;
     let last_start = padded_len.saturating_sub(FRAME_LENGTH);
     let num_frames = (last_start / HOP_LENGTH) + 1;
 

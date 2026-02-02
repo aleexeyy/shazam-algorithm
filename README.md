@@ -8,7 +8,6 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
 - **Backend**: Built with **Actix-web (Rust)** for handling uploads, fingerprinting, and database interaction.
 - **Frontend**: A simple interface built with **React** for uploading tracks and recognizing songs.
 - **Database**: **PostgreSQL** stores fingerprints + song metadata.
-- **Object Storage**: **MinIO** (S3-compatible) for future audio/object storage needs.
 - **Audio Downloading**: Uses `yt-dlp` to fetch audio from YouTube based on Spotify track links.
 
 ## 🚀 Features
@@ -36,102 +35,42 @@ This project is an attempt to recreate the core functionality of **Shazam** — 
 - **Backend**: Actix-web (Rust)
 - **Frontend**: React
 - **Database**: PostgreSQL
-- **Object Storage**: MinIO
 
 ## Setup Instructions
 
 ### Prerequisites
 
-1. **Rust**
-   - Install Rust using rustup: https://rustup.rs/
-   - Follow the instructions for your operating system
-
-2. **Docker + Docker Compose** (recommended)
-   - Install Docker Desktop or Docker Engine + Compose plugin.
+1. **Docker + Docker Compose** (recommended)
+2. Optional local tools (only needed when not using Docker):
+   - `ffmpeg`
+   - `yt-dlp`
 
 ### Quickstart (Docker)
 
-1. Start the full stack (app + PostgreSQL + MinIO):
-   - `docker compose up --build`
+1. Start the stack (app + PostgreSQL):
+   - `docker compose up --build -d`
 
 2. Verify the server:
    - `curl http://localhost:8000/healthz`
 
-### Spotify API Setup
+3. Open the app:
+   - `http://localhost:8000/`
 
-1. Create a Spotify Developer account at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
-2. Create a new application
-3. Once created, you'll receive a **Client ID** and **Client Secret**
-4. Set these as environment variables (see Environment Setup below)
+### Spotify API Setup (optional; only needed for Upload Mode)
 
-### Project Setup
+1. Create a Spotify app in the Spotify Developer Dashboard.
+2. Put `CLIENT_ID` and `CLIENT_SECRET` into your environment (or `.env`, not committed).
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/your-username/shazam-clone.git
-   cd shazam-clone
-   ```
+### Local development (no Docker)
 
-2. Run the setup script to install dependencies:
-   ```
-   bash setup.sh
-   ```
-   
-   (This will install yt-dlp, ffmpeg, and other dependencies)
+1. Backend:
+   - `cp .env.example .env`
+   - `cargo run --bin shazam-server`
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env` and adjust as needed:
-   ```
-   SERVER_PORT=8000
-   CLIENT_ID=your_spotify_client_id
-   CLIENT_SECRET=your_spotify_client_secret
-   DATABASE_URL=postgres://shazam:shazam@localhost:5432/shazam
-   S3_ENDPOINT=http://localhost:9000
-   S3_BUCKET=shazam
-   S3_ACCESS_KEY=minio
-   S3_SECRET_KEY=minio123456
-   ```
-
-4. Build the Rust component:
-   ```
-   cd recognition
-   cargo build --release
-   cd ..
-   ```
-
-5. Install frontend dependencies:
-   ```
-   cd frontend
-   npm install
-   cd ..
-   ```
-
-### Running the Application
-
-1. Start the MySQL service if not already running
-   - **Windows**: Via Services app
-   - **macOS**: `brew services start mysql`
-   - **Linux**: `sudo systemctl start mysql`
-
-2. Run the Rust setup script to create database tables:
-   ```
-   cd recognition
-   cargo run --bin setup
-   cd ..
-   ```
-
-3. Start the backend server:
-   ```
-   cargo run --bin shazam-server
-   ```
-
-4. In a new terminal, start the frontend development server:
-   ```
-   cd frontend
-   npm start
-   ```
-
-5. Open your browser and navigate to `http://localhost:3001`
+2. Frontend:
+   - `cp front-end/.env.example front-end/.env`
+   - `npm --prefix front-end install`
+   - `npm --prefix front-end run dev`
 
 ## Performance (Criterion + Flamegraphs)
 
@@ -154,7 +93,7 @@ See `docs/perf.md` for running benchmarks and generating flamegraphs.
 ## Troubleshooting
 
 - **Database Connection Issues**: 
-  - Verify MySQL is running
+  - Verify PostgreSQL is running (or use Docker Compose)
   - Check your database credentials in the .env file
   - Ensure the database user has proper permissions
 
@@ -179,7 +118,7 @@ The application works similarly to Shazam:
 
 This project was mainly built for **learning purposes**, especially:
 - Diving into **Rust** for performance-critical parts.
-- Exploring full-stack development across **React**, **Express**, and system-level processing.
+- Exploring full-stack development across **React** and system-level processing.
 - Understanding **audio fingerprinting** and practical database design.
 
 

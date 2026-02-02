@@ -1,6 +1,6 @@
 use crate::backend::error::AppError;
-use base64::Engine;
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
+use log::{debug, info};
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 #[derive(Clone)]
@@ -12,6 +12,7 @@ pub struct SpotifyService {
 
 impl SpotifyService {
     pub fn new_from_env() -> Result<Self, AppError> {
+        debug!("Initializing SpotifyService from env");
         Ok(Self {
             http: reqwest::Client::new(),
             client_id: std::env::var("CLIENT_ID")?,
@@ -25,30 +26,25 @@ impl SpotifyService {
             access_token: String,
         }
 
-        let auth = base64::engine::general_purpose::STANDARD
-            .encode(format!("{}:{}", self.client_id, self.client_secret));
-
         let mut headers = HeaderMap::new();
         headers.insert(
             CONTENT_TYPE,
             HeaderValue::from_static("application/x-www-form-urlencoded"),
         );
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Basic {}", auth))
-                .map_err(|e| AppError::internal(format!("invalid auth header: {e}")))?,
-        );
 
+        debug!("Requesting Spotify access token");
         let resp = self
             .http
             .post("https://accounts.spotify.com/api/token")
             .headers(headers)
+            .basic_auth(&self.client_id, Some(&self.client_secret))
             .body("grant_type=client_credentials")
             .send()
             .await?
             .error_for_status()?;
 
         let data: TokenResponse = resp.json().await?;
+        debug!("Spotify access token acquired");
         Ok(data.access_token)
     }
 
@@ -65,6 +61,7 @@ impl SpotifyService {
         }
 
         let token = self.token().await?;
+        info!("Fetching Spotify track info: {}", track_id);
         let resp = self
             .http
             .get(format!("https://api.spotify.com/v1/tracks/{}", track_id))
@@ -76,7 +73,7 @@ impl SpotifyService {
         let track: TrackResponse = resp.json().await?;
         let artist = track
             .artists
-            .get(0)
+            .first()
             .ok_or_else(|| AppError::BadRequest("track has no artists".to_string()))?
             .name
             .clone();

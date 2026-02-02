@@ -48,7 +48,7 @@ pub fn match_song(
 
     let mut sample_by_hash: HashMap<u64, Vec<f32>> = HashMap::new();
     for (&hash, &t) in sample_keys.iter().zip(sample_times.iter()) {
-        sample_by_hash.entry(hash).or_insert_with(Vec::new).push(t);
+        sample_by_hash.entry(hash).or_default().push(t);
     }
 
     let mut hash_frequency: HashMap<u64, u32> = HashMap::new();

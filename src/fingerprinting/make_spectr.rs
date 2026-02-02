@@ -84,6 +84,12 @@ impl FrameAnalyzer {
     }
 }
 
+impl Default for FrameAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn hann_window(len: usize) -> Vec<f64> {
     if len == 0 {
         return Vec::new();

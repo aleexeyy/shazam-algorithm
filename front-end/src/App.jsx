@@ -1,44 +1,43 @@
 import "./App.css"
 import ModeSwitch from "./Switch";
 import Center from "./Center"
-import React, { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { apiUrl } from "./api";
 
 export default function App() {
     const [totalSongs, setTotalSongs] = useState(null);
     const [error, setError] = useState(null);
     // const [spotifyUrl, setSpotifyUrl] = useState("");
 
+    const refreshSongsCount = useCallback(async () => {
+        try {
+            const response = await fetch(apiUrl("/songs/count"), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            setTotalSongs(data.count);
+            setError(null);
+        } catch (error) {
+            console.error("Error fetching song count:", error);
+            setError("Failed to load songs count. Please try again later.");
+        }
+    }, []);
     
     useEffect(() => {
-        const getSongsCount = async () => {
-            const apiURL = "http://localhost:8000/songs/count";
-            try {
-                const response = await fetch(apiURL, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                setTotalSongs(data.count);
-                setError(null); // Clear any previous errors
-            } catch (error) {
-                console.error("Error fetching song count:", error);
-                setError("Failed to load songs count. Please try again later.");
-            }
-        };
-    
-        getSongsCount();
-    }, []);
+        refreshSongsCount();
+    }, [refreshSongsCount]);
 
     return (
         <>
 
         <Center>
-        <ModeSwitch></ModeSwitch>
+        <ModeSwitch onSongsChanged={refreshSongsCount}></ModeSwitch>
         </Center>
 
             <div id="song-counter">

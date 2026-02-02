@@ -4,12 +4,13 @@ use crate::backend::models::{
 };
 use crate::backend::repositories::Repository;
 use crate::backend::services::{AudioTools, FingerprintService, SpotifyService};
-use crate::backend::storage::minio::MinioStorage;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, web};
 use futures_util::StreamExt;
 use mime::Mime;
 use std::sync::Arc;
+
+pub mod frontend;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -17,7 +18,6 @@ pub struct AppState {
     pub spotify: SpotifyService,
     pub audio: AudioTools,
     pub fingerprint: FingerprintService,
-    pub minio: MinioStorage,
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -35,7 +35,6 @@ async fn ping() -> Result<HttpResponse, AppError> {
 async fn healthz(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
     let repo = Arc::clone(&state.repo);
     let _ = tokio::task::spawn_blocking(move || repo.songs_count()).await??;
-    state.minio.ensure_ready().await?;
     Ok(HttpResponse::Ok().json(PongResponse { message: "OK" }))
 }
 
@@ -49,16 +48,26 @@ async fn upload_song(
     state: web::Data<AppState>,
     body: web::Json<UploadSongRequest>,
 ) -> Result<HttpResponse, AppError> {
+    if body.to_recognize {
+        return Err(AppError::BadRequest(
+            "upload-song does not support toRecognize=true".to_string(),
+        ));
+    }
+
+    state.audio.ensure_dirs().await?;
     let track = state.spotify.track_info(&body.song_id).await?;
-    state
+    let download_id = uuid::Uuid::new_v4();
+    let wav_file = state
         .audio
-        .download_with_ytdlp(&track.name, &track.artist)
+        .download_with_ytdlp(&track.name, &track.artist, download_id)
         .await?;
 
     let _ = state
         .fingerprint
-        .run(track.name, track.artist, body.to_recognize)
+        .ingest_from_file(track.name, track.artist, wav_file.clone())
         .await?;
+
+    let _ = tokio::fs::remove_file(crate::paths::audio_dir().join(&wav_file)).await;
 
     Ok(HttpResponse::Ok().json(UploadSongResponse {
         upload_status: "OK",
@@ -73,6 +82,7 @@ async fn recognize_song(
 
     let mut saved_path = None::<std::path::PathBuf>;
     let mut content_type = None::<Mime>;
+    let upload_id = uuid::Uuid::new_v4();
 
     while let Some(field) = multipart.next().await {
         let mut field = field.map_err(|e| AppError::BadRequest(e.to_string()))?;
@@ -82,7 +92,7 @@ async fn recognize_song(
 
         content_type = field.content_type().cloned();
 
-        let file_name = format!("upload-{}.bin", uuid::Uuid::new_v4());
+        let file_name = format!("upload-{}.bin", upload_id);
         let temp_path = crate::paths::audio_dir().join(file_name);
         let mut file = tokio::fs::File::create(&temp_path).await?;
 
@@ -98,8 +108,9 @@ async fn recognize_song(
     let temp_path =
         saved_path.ok_or_else(|| AppError::BadRequest("missing 'audio' file field".to_string()))?;
 
-    let target_path = state.audio.recognize_target_path();
-    let mime_type = content_type.unwrap_or_else(|| mime::APPLICATION_OCTET_STREAM);
+    let recognize_wav_file = format!("audio_to_recognize-{}.wav", upload_id);
+    let target_path = crate::paths::audio_dir().join(&recognize_wav_file);
+    let mime_type = content_type.unwrap_or(mime::APPLICATION_OCTET_STREAM);
 
     match mime_type.essence_str() {
         "audio/wav" | "audio/x-wav" => {
@@ -118,10 +129,13 @@ async fn recognize_song(
         }
     }
 
-    let (name, artist) = state
+    let result = state
         .fingerprint
-        .run(String::new(), String::new(), true)
-        .await?;
+        .recognize_from_file(recognize_wav_file)
+        .await;
+
+    let _ = tokio::fs::remove_file(&target_path).await;
+    let (name, artist) = result?;
 
     Ok(HttpResponse::Ok().json(RecognizeSongResponse { name, artist }))
 }
