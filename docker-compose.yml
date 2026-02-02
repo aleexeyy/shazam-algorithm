@@ -10,16 +10,19 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
 
   app:
     build:
       context: .
+      dockerfile: Dockerfile
+    init: true
     environment:
       SERVER_PORT: ${SERVER_PORT:-8000}
       DATABASE_URL: postgres://${POSTGRES_USER:-shazam}:${POSTGRES_PASSWORD:-shazam}@postgres:5432/${POSTGRES_DB:-shazam}
-      # Optional (only needed for /upload-song)
       CLIENT_ID: ${CLIENT_ID:-dummy}
       CLIENT_SECRET: ${CLIENT_SECRET:-dummy}
       RUST_LOG: ${RUST_LOG:-info}
@@ -29,6 +32,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   pgdata:

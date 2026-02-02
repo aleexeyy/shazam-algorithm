@@ -1,5 +1,5 @@
 use crate::backend::error::AppError;
-use crate::backend::repositories::Repository;
+use crate::backend::repositories::PostgresRepository;
 use crate::fingerprinting::constants::{FRAME_LENGTH, HOP_LENGTH, OUTPUT_SAMPLE_RATE};
 use crate::fingerprinting::match_song::{MatchConfig, match_song};
 use crate::fingerprinting::types::{FingerprintSample, FramePeaks};
@@ -7,8 +7,8 @@ use crate::fingerprinting::types::{FingerprintSample, FramePeaks};
 const MAX_TARGETS_PER_ANCHOR: usize = 5;
 const TARGET_ZONE_FRAMES: usize = 6;
 
-pub fn create_pairs(
-    repo: &dyn Repository,
+pub async fn create_pairs(
+    repo: &PostgresRepository,
     peaks: &[FramePeaks],
     song_id: u64,
     to_recognize: bool,
@@ -16,11 +16,12 @@ pub fn create_pairs(
     let sample = build_sample(peaks);
 
     if !to_recognize {
-        repo.insert_fingerprints(song_id, &sample.keys, &sample.anchor_times)?;
+        repo.insert_fingerprints(song_id, &sample.keys, &sample.anchor_times)
+            .await?;
         return Ok(song_id);
     }
 
-    let matches = repo.get_fingerprints_by_keys(&sample.keys)?;
+    let matches = repo.get_fingerprints_by_keys(&sample.keys).await?;
     let result = match_song(
         &matches,
         &sample.keys,

@@ -39,6 +39,11 @@ impl AudioTools {
             download_id, artist_name, song_name
         );
         let status = Command::new("yt-dlp")
+            .arg("--no-playlist")
+            .arg("--default-search")
+            .arg("ytsearch1")
+            .arg("-f")
+            .arg("bestaudio/best")
             .arg("-x")
             .arg("--audio-format")
             .arg("wav")

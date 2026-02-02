@@ -2,7 +2,7 @@ use crate::backend::error::AppError;
 use crate::backend::models::{
     PongResponse, RecognizeSongResponse, SongsCountResponse, UploadSongRequest, UploadSongResponse,
 };
-use crate::backend::repositories::Repository;
+use crate::backend::repositories::PostgresRepository;
 use crate::backend::services::{AudioTools, FingerprintService, SpotifyService};
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, web};
@@ -14,7 +14,7 @@ pub mod frontend;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub repo: Arc<dyn Repository>,
+    pub repo: Arc<PostgresRepository>,
     pub spotify: SpotifyService,
     pub audio: AudioTools,
     pub fingerprint: FingerprintService,
@@ -33,14 +33,12 @@ async fn ping() -> Result<HttpResponse, AppError> {
 }
 
 async fn healthz(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
-    let repo = Arc::clone(&state.repo);
-    let _ = tokio::task::spawn_blocking(move || repo.songs_count()).await??;
+    state.repo.songs_count().await?;
     Ok(HttpResponse::Ok().json(PongResponse { message: "OK" }))
 }
 
 async fn songs_count(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
-    let repo = Arc::clone(&state.repo);
-    let count = tokio::task::spawn_blocking(move || repo.songs_count()).await??;
+    let count = state.repo.songs_count().await?;
     Ok(HttpResponse::Ok().json(SongsCountResponse { count }))
 }
 

@@ -7,7 +7,6 @@ import { apiUrl } from "./api";
 export default function App() {
     const [totalSongs, setTotalSongs] = useState(null);
     const [error, setError] = useState(null);
-    // const [spotifyUrl, setSpotifyUrl] = useState("");
 
     const refreshSongsCount = useCallback(async () => {
         try {

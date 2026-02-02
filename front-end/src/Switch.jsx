@@ -21,13 +21,10 @@ const ModeSwitch = ({ onSongsChanged }) => {
         setFileName(file.name);
         setRequestError(null);
         setRequestSuccess(null);
-        // setSongName("");
-        // setArtistName("");
     }
   };
 
   const uploadSong = async (toRecognize) => {
-    //https://open.spotify.com/track/7AuYlke4foydiCbZbqS5JP?si=f80cdba2494b45b9
 
     if (!toRecognize) {
     const webSite = spotifyUrl.substring(0, 31);
@@ -51,7 +48,6 @@ const ModeSwitch = ({ onSongsChanged }) => {
             try {
               data = await response.json();
             } catch {
-              // ignore non-JSON errors
             }
 
             if (!response.ok) {
@@ -75,7 +71,6 @@ const ModeSwitch = ({ onSongsChanged }) => {
     }
         
     } else {
-        // File recognition
         if (!selectedFile) {
           setRequestError("Please upload a file first!");
           return;

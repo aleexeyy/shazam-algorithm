@@ -50,9 +50,9 @@ rayon = "1.11"
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util", "process", "time"] }
 uuid = { version = "1", features = ["v4"] }
-postgres = "0.19"
-r2d2 = "0.8"
-r2d2_postgres = "0.18"
+tokio-postgres = "0.7.16"
+deadpool-postgres = "0.14.1"
+bytes = "1.11.0"
 
 [dev-dependencies]
 criterion = "0.5"

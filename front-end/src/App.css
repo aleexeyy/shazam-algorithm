@@ -16,9 +16,9 @@ body {
 }
 .centering-div {
     display: flex;
-    justify-content: center;   /* Horizontally center */
+    justify-content: center;
     align-items: center;    
-    flex-direction: column;   /* Vertically center */
+    flex-direction: column;
     height: 100%;
 }
 
@@ -29,12 +29,12 @@ body {
 
 #submit-button {
     margin-left: 10px;
-    padding: 6px 12px;      /* Increases size (top/bottom, left/right) */
-    font-size: 18px;         /* Larger text */
-    background-color: #4CAF50; /* Optional: make it more stylish */
+    padding: 6px 12px;
+    font-size: 18px;
+    background-color: #4CAF50;
     color: white;
     border: none;
-    border-radius: 6px;      /* Optional: rounded corners */
+    border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
   }

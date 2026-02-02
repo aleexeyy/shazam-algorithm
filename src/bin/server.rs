@@ -3,7 +3,7 @@ use actix_web::dev::Service;
 use actix_web::http::header;
 use actix_web::{App, HttpServer, middleware, web};
 use shazam::backend::handlers::{self, AppState};
-use shazam::backend::repositories::{PostgresRepository, Repository};
+use shazam::backend::repositories::PostgresRepository;
 use shazam::backend::services::{AudioTools, FingerprintService, SpotifyService};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,13 +23,12 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or(8000);
 
     let repo = retry("postgres", Duration::from_secs(30), || async {
-        tokio::task::spawn_blocking(PostgresRepository::new_from_env)
+        PostgresRepository::new_from_env()
             .await
-            .map_err(|e| std::io::Error::other(e.to_string()))?
             .map_err(|e| std::io::Error::other(e.to_string()))
     })
     .await?;
-    let repo: Arc<dyn Repository> = Arc::new(repo);
+    let repo: Arc<PostgresRepository> = Arc::new(repo);
     let spotify =
         SpotifyService::new_from_env().map_err(|e| std::io::Error::other(e.to_string()))?;
     let audio = AudioTools;

@@ -21,10 +21,13 @@ pub enum AppError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Db(#[from] postgres::Error),
+    Db(#[from] tokio_postgres::Error),
 
     #[error(transparent)]
-    Pool(#[from] r2d2::Error),
+    Pool(#[from] deadpool_postgres::PoolError),
+
+    #[error(transparent)]
+    CreatePool(#[from] deadpool_postgres::CreatePoolError),
 
     #[error(transparent)]
     HttpClient(#[from] reqwest::Error),
@@ -69,6 +72,7 @@ impl ResponseError for AppError {
             Self::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Db(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Pool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::CreatePool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::HttpClient(_) => StatusCode::BAD_GATEWAY,
             Self::Join(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,

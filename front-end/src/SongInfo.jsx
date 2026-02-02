@@ -1,5 +1,5 @@
 import React from 'react';
-import './SongInfo.css'; // Optional CSS file for custom styling
+import './SongInfo.css';
 
 const SongInfo = ({ songName, artistName }) => {
   return (

@@ -1,131 +1,120 @@
-# 🎵 Shazam Clone – Music Recognition App
+# 🎵 Music Recognition App
 
-This project is an attempt to recreate the core functionality of **Shazam** — recognizing songs based on audio fingerprints.
+I built this app to explore how audio fingerprinting works in practice. It is essentially a simplified, self-hosted take on Shazam: you build a small music library from Spotify links, then upload a recording to see whether the system can recognize the track.
 
-## 🧠 Tech Stack
+---
 
-- **Recognition Algorithm**: Written in **Rust** to explore the language's performance and ecosystem.
-- **Backend**: Built with **Actix-web (Rust)** for handling uploads, fingerprinting, and database interaction.
-- **Frontend**: A simple interface built with **React** for uploading tracks and recognizing songs.
-- **Database**: **PostgreSQL** stores fingerprints + song metadata.
-- **Audio Downloading**: Uses `yt-dlp` to fetch audio from YouTube based on Spotify track links.
+## How to Use It
 
-## 🚀 Features
+The app has two modes that you can toggle between. Screenshots included in the repository show each step of this flow.
 
-- **Two Modes**:
-  - **Upload Mode**: Add new tracks to the database.
-    - Users can paste a **Spotify link**.
-    - The server extracts song info (title & artist), downloads the track using **yt-dlp**, and processes it for fingerprinting.
-  - **Recognition Mode**: Identify a song from an audio sample.
-    - Supports `.wav`, `.mp3`, and `.ogg` file uploads.
+### 1. Building the Library (Upload Mode)
 
-- **Switching Modes**: The mode can be toggled with a **switch** on the frontend.
+![Upload Mode](docs/images/upload_mode.png)
 
-## ⚠️ Limitations
+Switch to **Upload Mode** to add new songs to the database.
 
-- The recognition algorithm is still a **work in progress**.
-- Performance may be poor on:
-  - **Short samples**
-  - **Low-quality recordings**
+1. Paste a Spotify track link.
+2. Submit the link.
+3. The system:
 
+   * Fetches basic metadata (artist and title).
+   * Downloads the audio.
+   * Generates a unique digital “fingerprint” from the sound.
 
-## Technology Stack
+Once processing finishes, the song is stored in the database and becomes available for recognition.
 
-- **Recognition Algorithm**: Rust
-- **Backend**: Actix-web (Rust)
-- **Frontend**: React
-- **Database**: PostgreSQL
+---
 
-## Setup Instructions
+### 2. Identifying a Song (Recognition Mode)
 
-### Prerequisites
+![Recognition Mode](docs/images/recognize_mode.png)
 
-1. **Docker + Docker Compose** (recommended)
-2. Optional local tools (only needed when not using Docker):
-   - `ffmpeg`
-   - `yt-dlp`
+Switch to **Recognition Mode** when you have an audio clip you want to identify.
 
-### Quickstart (Docker)
+1. Upload a `.wav`, `.mp3`, or `.ogg` file.
+2. The app analyzes the sample, compares its fingerprint against the database, and returns the closest match.
 
-1. Start the stack (app + PostgreSQL):
-   - `docker compose up --build -d`
+![Recognition Results](docs/images/correctly_recognized_song.png)
 
-2. Verify the server:
-   - `curl http://localhost:8000/healthz`
+---
 
-3. Open the app:
-   - `http://localhost:8000/`
+## What’s Happening Under the Hood?
 
-### Spotify API Setup (optional; only needed for Upload Mode)
+Audio fingerprinting is tricky because audio files cannot be compared directly, bit by bit. Instead, the app extracts distinctive sound patterns that stay relatively stable even if the recording quality changes.
 
-1. Create a Spotify app in the Spotify Developer Dashboard.
-2. Put `CLIENT_ID` and `CLIENT_SECRET` into your environment (or `.env`, not committed).
+A strong focus of this project is performance and responsiveness:
 
-### Local development (no Docker)
+* **Rust + Rayon**: Rust is used for all performance-critical logic. Fingerprint computation is parallelized across CPU cores so heavy processing does not stall the system.
+* **Async Backend**: The API is built with `actix-web` and `tokio`, allowing request handling and I/O to remain non-blocking.
+* **Concurrent Pipeline**: Expensive audio analysis runs on worker threads, keeping the server responsive while processing files.
 
-1. Backend:
-   - `cp .env.example .env`
-   - `cargo run --bin shazam-server`
+---
 
-2. Frontend:
-   - `cp front-end/.env.example front-end/.env`
-   - `npm --prefix front-end install`
-   - `npm --prefix front-end run dev`
+## The Stack
 
-## Performance (Criterion + Flamegraphs)
+* **Core Logic**: Rust (fingerprinting algorithm, API, concurrency)
+* **Frontend**: React
+* **Database**: PostgreSQL
+* **Audio Processing**: ffmpeg, yt-dlp
+* **Observability & Performance**: Structured logging, Criterion benchmarks
 
-See `docs/perf.md` for running benchmarks and generating flamegraphs.
+---
 
-## Using the Application
+## A Few Caveats
 
-1. Use the toggle switch to select either "Upload" or "Recognize" mode
+The recognition algorithm is still a work in progress. It performs well with clean, reasonably long recordings, but accuracy can drop when:
 
-2. To add songs to the database:
-   - Switch to "Upload" mode
-   - Paste a Spotify link (e.g., https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT)
-   - Click "Submit" and wait for processing
+* The sample is extremely short (only a few seconds).
+* There is significant background noise.
+* The recording quality is very low.
 
-3. To recognize a song:
-   - Switch to "Recognize" mode
-   - Click "Upload Audio" and select a .wav, .mp3, or .ogg file
-   - Wait for the analysis results
+---
 
-## Troubleshooting
+## Getting Started
 
-- **Database Connection Issues**: 
-  - Verify PostgreSQL is running (or use Docker Compose)
-  - Check your database credentials in the .env file
-  - Ensure the database user has proper permissions
+### Quickstart with Docker (Recommended)
 
-- **Audio Processing Errors**:
-  - Make sure ffmpeg is correctly installed and accessible in your PATH
-  - Check for supported audio formats (.wav, .mp3, .ogg)
+```bash
+docker compose up --build -d
+```
 
-- **Song Download Problems**:
-  - Verify yt-dlp is installed correctly
-  - Check your internet connection
-  - Some songs might be unavailable on YouTube or have copyright restrictions
+Check server health:
 
-## How It Works
+```bash
+curl http://localhost:8000/healthz
+```
 
-The application works similarly to Shazam:
-1. When adding songs, the system creates audio fingerprints from frequency patterns
-2. These fingerprints are stored in the database with song information
-3. During recognition, the algorithm extracts fingerprints from the sample audio
-4. It compares these fingerprints against the database to find the closest match
+Open the app:
 
-## 🛠️ Goals
+```
+http://localhost:8000/
+```
 
-This project was mainly built for **learning purposes**, especially:
-- Diving into **Rust** for performance-critical parts.
-- Exploring full-stack development across **React** and system-level processing.
-- Understanding **audio fingerprinting** and practical database design.
+**Note**: Upload Mode requires Spotify credentials. Set `CLIENT_ID` and `CLIENT_SECRET` in a `.env` file before starting the server.
 
+---
+
+## Local Development
+
+To run the project without Docker, make sure `ffmpeg` and `yt-dlp` are installed and available in your PATH.
+
+**Backend**
+
+```bash
+cp .env.example .env
+cargo run --bin shazam-server
+```
+
+**Frontend**
+
+```bash
+npm --prefix front-end install
+npm --prefix front-end run dev
+```
+
+---
 
 ## License
 
 MIT
-
----
-
-Feel free to explore, modify, or contribute!
